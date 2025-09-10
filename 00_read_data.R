@@ -39,7 +39,7 @@ df <- list_datafiles |>
   mutate(across(c(country, nsalid1), factor),
          # Combine Central American countries
          country = fct_collapse(country, CA = c("PA", "GT", "SV", "CR"))) |> 
-  arrange(across(c(country, nsalid1, date, sex, age))) # Order rows
+  arrange(across(c(nsalid1, date, sex, age))) # Order rows
 
 # Write cleaned data frame to disk
 saveRDS(df,   here("data", "mort_temp.rds"))
