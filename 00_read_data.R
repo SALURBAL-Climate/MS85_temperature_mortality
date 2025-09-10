@@ -1,23 +1,23 @@
 library(tidyverse)
 library(here)
+library(glue)
 
 # Read metadata describing cities -----------------------------------------
 
 # Paths to read locations
 path_overall     <- "//files.drexel.edu/encrypted/SOPH/UHC/Projects/SALURBAL HEAT Study/"
-path_metadata    <- paste0(path_overall,"Data/Files/Derived Data/Meta Data/")
-path_climatedata <- paste0(path_overall,"Data/Files/Climate Zone/Processed Data/")
-path_deriveddata <- paste0(path_overall,"Data/Files/Derived Data/")
-path_all_cause   <- paste0(path_deriveddata, "All Cause/")
-path_respiratory <- paste0(path_deriveddata, "Respiratory/")
-path_cardio      <- paste0(path_deriveddata, "Cardiovascular/")
+path_metadata    <- glue("{path_overall}/Data/Files/Derived Data/Meta Data/")
+path_climatedata <- glue("{path_overall}/Data/Files/Climate Zone/Processed Data/")
+
+# Path to updated data mortality/temperature data
+path_all_cause <- "//files.drexel.edu/colleges/SOPH/Shared/UHC/Projects/Wellcome_Trust/Manuscripts/MS85_Update/2025_08_20/data/clean/"
 
 # Read metadata
-metadata0 <- haven::read_sas(paste0(path_metadata, "city_level_temp.sas7bdat"))
-hasmortality <- haven::read_sas(paste0(path_metadata, "hasmortality_indic.sas7bdat"))
-clusters <- read_csv(paste0(path_overall, "Analysis/Clusters/Results/ECDFClusters.csv"))
-climate_labels <- read_csv(paste0(path_climatedata, "climate_labels2.csv"))
-inAICcalculations <- read_csv(paste0(path_metadata, "inAICcalculations.csv"), col_select = c(nsalid1, inAIC))
+metadata0 <- haven::read_sas(glue("{path_metadata}/city_level_temp.sas7bdat"))
+hasmortality <- haven::read_sas(glue("{path_metadata}/hasmortality_indic.sas7bdat"))
+clusters <- read_csv(glue("{path_overall}/Analysis/Clusters/Results/ECDFClusters.csv"))
+climate_labels <- read_csv(glue("{path_climatedata}/climate_labels2.csv"))
+inAICcalculations <- read_csv(glue("{path_metadata}/inAICcalculations.csv"), col_select = c(nsalid1, inAIC))
 
 # Aggregate metadata
 metadata <-
@@ -36,7 +36,6 @@ metadata <-
   select(nsalid1, everything())
 
 # Save aggregated metadata
-write_csv(metadata, here("data", "metadata.csv"))
 saveRDS(metadata,   here("data", "metadata.rds"))
 
 # Read city specific data -------------------------------------------------

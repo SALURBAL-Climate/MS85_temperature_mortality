@@ -22,7 +22,8 @@ analyze_city <- function(df_city, death_var = "deaths", df_meta = NULL) {
   cbt <- crossbasis(df_city$tmean,
                     lag = n_lag,
                     argvar = list(fun = "ns", knots = pred_knots),
-                    arglag = list(fun = "ns", knots = lag_knots))
+                    arglag = list(fun = "ns", knots = lag_knots), 
+                    group = df_city$group)
   
   # Define reduced cross-basis for future meta regression
   cbt_red <- onebasis(df_city$tmean, fun = "ns", knots = pred_knots)
@@ -80,10 +81,15 @@ list_city_df <- df |>
   map(\(df_city) {
     df_city |> 
       # Get totals for all cause, respiratory, and cardio deaths by city-day
-      summarize(across(c(deaths, respiratory, cardio), sum), 
-                across(c(country, tmean, pop), first), .by = c(nsalid1, date)) |> 
+      # summarize(across(c(deaths, respiratory, cardio), sum), 
+      #           across(c(country, tmean, pop), first), .by = c(nsalid1, date)) |> 
       # Add the strata variable for conditional model fitting (year:month:dow)
-      mutate(strata = factor(paste(year(date), month(date), wday(date, label = TRUE), sep = ":")))
+      mutate(strata = factor(paste(year(date), 
+                                   month(date), 
+                                   wday(date, label = TRUE),
+                                   sex, 
+                                   age, sep = ":")),
+             group = factor(paste(sex, age, sep = ":")))
   }) |> set_names(city_names) # Label this list of dataframes with the city names
 
 # Deaths from ages 65+/all sexes, split by city
@@ -95,10 +101,14 @@ list_city_df_65 <- df |>
       # Restrict data to only ages 65 or older
       filter(age == "65+") |> 
       # Get totals for all cause, respiratory, and cardio deaths by city-day
-      summarize(across(c(deaths, respiratory, cardio), sum), 
-                across(c(country, tmean, pop), first), .by = c(nsalid1, date)) |> 
+      # summarize(across(c(deaths, respiratory, cardio), sum), 
+      #           across(c(country, tmean, pop), first), .by = c(nsalid1, date)) |> 
       # Add the strata variable for conditional model fitting (year:month:dow)
-      mutate(strata = factor(paste(year(date), month(date), wday(date, label = TRUE), sep = ":")))
+      mutate(strata = factor(paste(year(date), 
+                                   month(date), 
+                                   wday(date, label = TRUE),
+                                   sex, sep = ":")),
+             group = sex)
   }) |> set_names(city_names) # Label this list of dataframes with the city names
 
 # Meta data, split by city
@@ -127,7 +137,7 @@ list_city_model <-
          # Map over each city in chosen data set
          map2(data_set, list_metadata,
               \(df_city, df_meta) {
-                analyze_city(df_city, death_var, df_meta)
+                analyze_city(df_city, death_var, df_meta = NULL)
            })
         }) |> set_names(name_analyses)
 
