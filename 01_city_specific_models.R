@@ -7,16 +7,14 @@ library(dlnm); library(gnm); library(splines)
 # Helper functions --------------------------------------------------------
 
 # Analyze a given city with specified parameters
-analyze_city <- function(df_city, death_var = "deaths", df_meta = NULL) {
+analyze_city <- function(df_city, death_var = "deaths") {
   
   # Specify knots for given city
   n_lag <- 21
   lag_knots <- logknots(n_lag, nk = 3)
   
-  # If metadata temperature percentiles are provided, use those, otherwise, 
-  # temperature percentiles are calculate manually
-  pred_knots <- quantile(df_city$tmean, c(.1, .75, .9), na.rm = TRUE) # manual
-  if(!is.null(df_meta)) pred_knots <- c(df_meta$p10, df_meta$p75, df_meta$p90) # pre-calcualted
+  # Temperature percentiles are calculate manually
+  pred_knots <- quantile(df_city$tmean, c(.1, .75, .9), na.rm = TRUE)
   
   # Define cross-basis
   cbt <- crossbasis(df_city$tmean,
@@ -69,77 +67,61 @@ city_pred <- function(city_model) {
 
 # Read in data
 df <- readRDS(here("data", "mort_temp.rds"))
-df_metadata <- readRDS(here("data", "metadata.rds"))
-
-# Extract city names  
-city_names <- unique(df$nsalid1)
 
 # Deaths from all ages/sexes, split by city
-list_city_df <- df |> 
-  group_by(nsalid1) |> 
-  group_split() |> # Split data by city
+list_city_df <- 
+  split(df, df$nsalid1) |> # Split data by city
   map(\(df_city) {
     df_city |> 
-      # Get totals for all cause, respiratory, and cardio deaths by city-day
-      # summarize(across(c(deaths, respiratory, cardio), sum), 
-      #           across(c(country, tmean, pop), first), .by = c(nsalid1, date)) |> 
-      # Add the strata variable for conditional model fitting (year:month:dow)
-      mutate(strata = factor(paste(year(date), 
-                                   month(date), 
-                                   wday(date, label = TRUE),
-                                   sex, 
-                                   age, sep = ":")),
-             group = factor(paste(sex, age, sep = ":")))
-  }) |> set_names(city_names) # Label this list of dataframes with the city names
+      # Add the strata variable for conditional model fitting 
+      mutate(strata = factor(glue("{year}:{month}:{dow}:{sex}:{age}",
+                                  year  = year(date),
+                                  month = month(date), 
+                                  dow   = wday(date, label = TRUE))),
+             group  = factor(glue("{sex}:{age}")))
+  })
 
 # Deaths from ages 65+/all sexes, split by city
-list_city_df_65 <- df |> 
-  group_by(nsalid1) |> 
-  group_split() |> # Split data by city
+list_city_df_65 <-
+  split(df, df$nsalid1) |> # Split data by city
   map(\(df_city) {
     df_city |> 
       # Restrict data to only ages 65 or older
       filter(age == "65+") |> 
-      # Get totals for all cause, respiratory, and cardio deaths by city-day
-      # summarize(across(c(deaths, respiratory, cardio), sum), 
-      #           across(c(country, tmean, pop), first), .by = c(nsalid1, date)) |> 
-      # Add the strata variable for conditional model fitting (year:month:dow)
-      mutate(strata = factor(paste(year(date), 
-                                   month(date), 
-                                   wday(date, label = TRUE),
-                                   sex, sep = ":")),
-             group = sex)
-  }) |> set_names(city_names) # Label this list of dataframes with the city names
-
-# Meta data, split by city
-list_metadata <- df_metadata |> 
-  group_by(nsalid1) |> 
-  group_split() |> 
-  set_names(city_names)
+      mutate(strata = factor(glue("{year}:{month}:{dow}:{sex}",
+                                  year  = year(date),
+                                  month = month(date), 
+                                  dow   = wday(date, label = TRUE))),
+             group  = sex)
+  })
 
 # Analyze all cities ------------------------------------------------------
 
 # Our collection of data sets and response variables
-data_set  <- list(list_city_df, list_city_df_65)
-death_var <- c("deaths", "respiratory", "cardio")
+data_set  <- list(all_ages = list_city_df,
+                  over_65  = list_city_df_65)
+death_var <- c("deaths") # noninjury, cardio, respinf, respdis
 
-# All combinations that will be used in our analysis
+# A data frame organizing all analyses combinations
 df_analyses <- expand_grid(data_set, death_var)
 
-name_analyses <- 
-  expand_grid(x = c("all_ages", "over_65"),
-              y = death_var) |> pmap_chr(\(x, y) paste(x, y, sep = "_"))
+# A character vector of each analyses' name
+analyses_names <- 
+  expand_grid(age_cat   = names(data_set),
+              death_var = death_var) |> 
+  pmap_chr(\(age_cat, death_var) glue("{age_cat}_{death_var}"))
 
-# Analyze each city for all causes of death and age categories
+# Analyze all causes of death and age categories for each city
 list_city_model <-
+  # Map over age categories and death variable
   pmap(df_analyses, 
        \(data_set, death_var) {
-         # Map over each city in chosen data set
-         map2(data_set, list_metadata,
-              \(df_city, df_meta) {
-                analyze_city(df_city, death_var, df_meta = NULL)
+         # Map over chosen list of city data frames to model chosen death var
+         data_set |> 
+           map(\(df_city) {
+             analyze_city(df_city, death_var)
            })
-        }) |> set_names(name_analyses)
+        }) |> set_names(analyses_names)
 
 # Predict temperature-mortality curve for each city -----------------------
 
