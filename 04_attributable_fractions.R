@@ -9,7 +9,7 @@ list_total_deaths <-
              # Sum within city
              sum(df_city[[death_var]])
            }) |> sum() # Sum across cities
-    }) |> set_names(name_analyses)
+    }) |> set_names(analyses_names)
 
 # Get attributable number for each city, temp range, and analysis
 list_blup_ANs <-
