@@ -95,6 +95,9 @@ list_city_df_65 <-
              group  = sex)
   })
 
+# Get vector of city identifiers
+city_names <- names(list_city_df)
+
 # Analyze all cities ------------------------------------------------------
 
 # Our collection of data sets and response variables
