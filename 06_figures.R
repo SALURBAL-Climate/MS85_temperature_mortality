@@ -76,7 +76,7 @@ ggsave("results/figure_1.png", width = fig_width, height = fig_height, units = '
 # Figure 2 ----------------------------------------------------------------
 # source("02_meta_analysis.R")
 
-fig_2_cities <- c("101112", "102190", "204191", "105113", "204141", "103116")
+fig_2_cities <- c("8101112", "102190", "204191", "105113", "204141", "103116")
 fig_2_titles <- c("Buenos Aires, Argentina",
                   "Rio de Janeiro, Brazil",
                   "Mérida, Mexico",
@@ -102,9 +102,9 @@ fig_2_plots <- map2(fig_2_cities, fig_2_titles, \(ID, title) {
     geom_line(aes(y = RR, color = type)) +
     geom_ribbon(aes(ymin = RR_low, ymax = RR_high), alpha = .2) + 
     scale_y_continuous(limits = c(.75, 3.5),
-                       breaks = c(0.8, 1, 1.25, 1.5, 2),
-                       transform = "log") +
+                       breaks = c(0.8, 1, 1.25, 1.5, 2)) +
     scale_x_continuous(limits = x_lims) +
+    coord_trans(y = "log") +
     scale_color_manual(values = c("Hot temperatures" = "red", "Cold temperatures" = "blue")) +
     labs(title = title, subtitle = glue("Mean temperature {mean_temp}°C"), color = "") +
     theme(axis.title.x = element_blank(),
