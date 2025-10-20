@@ -1,0 +1,50 @@
+---
+title: "MS85 Update with new data"
+date: last-modified
+author: Usama Bilal / Derek Weix
+brand: false
+format: 
+  html:
+    theme: cosmo
+    number-sections: true
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    code-fold: true
+    page-layout: full
+    embed-resources: true
+editor: source
+warning: false
+#cache: true
+cache.lazy: false
+editor_options: 
+  chunk_output_type: console
+---
+
+# Reading data
+
+Change eval to true if running for the first time
+
+```{r}
+#| code-summary: "Loading data and saving analytic fi;le"
+#| eval: false
+source("00_read_data.R")
+```
+
+# Analysis
+
+```{r}
+source("01_city_specific_models.R")
+source("02_meta_analysis.R")
+```
+
+
+# Results
+
+
+```{r}
+source("03_RRs.R")
+source("04_results_plots.R")
+source("05_tables.R")
+source("06_figures.R")
+```
